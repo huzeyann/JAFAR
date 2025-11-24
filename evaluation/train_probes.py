@@ -12,8 +12,7 @@ from einops import rearrange
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 from rich.console import Console
-from rich.progress import (BarColumn, Progress, SpinnerColumn,
-                           TaskProgressColumn, TextColumn)
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.classification import Accuracy, JaccardIndex
 from tqdm import tqdm
@@ -88,8 +87,7 @@ class UpsamplerEvaluator:
             self.iou_metric = JaccardIndex(num_classes=cfg.metrics.seg.num_classes, task="multiclass").to(device)
             self.classifier = nn.Conv2d(cfg.model.feature_dim, cfg.metrics.seg.num_classes, 1).to(device)
         elif "depth" == cfg.eval.task:
-            from transformers import (AutoImageProcessor,
-                                      AutoModelForDepthEstimation)
+            from transformers import AutoImageProcessor, AutoModelForDepthEstimation
 
             from src.loss import GradientLoss, SigLoss
 
@@ -121,18 +119,16 @@ class UpsamplerEvaluator:
         else:
             raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
 
-    def set_optimizer(self, cfg):
+    def set_optimizer(self, cfg, loader):
         params = []
         params_classifier = self.classifier.parameters()
-        params_model = self.model.parameters()
 
         params = list(params_classifier)
         optimizer = instantiate(cfg.optimizer, params=params)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.num_epochs)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.num_epochs * len(loader))
         self.optimizer = optimizer
         self.scheduler = scheduler
 
-        # Log number of parameters
         num_params = sum(p.numel() for p in params if p.requires_grad)
         self.log_print(f"[bold cyan]Number of optimized parameters: {num_params:,}[/bold cyan]")
 
@@ -158,7 +154,6 @@ class UpsamplerEvaluator:
         with torch.no_grad():
             pred = self.backbone(image_batch)
             patch_tokens, cls_token = pred[0], pred[1]
-
             pred = self.model(image_batch, patch_tokens, (H, W))
 
         if self.cfg.eval.task == "depth":
@@ -505,7 +500,7 @@ def main(cfg):
         evaluator.evaluate(val_loader, epoch=0)
     else:
         log_print(f"[yellow]Training classifier... {checkpoint_path} not found[/yellow]\n")
-        evaluator.set_optimizer(cfg)
+        evaluator.set_optimizer(cfg, loader=train_loader)
 
         progress = Progress(
             SpinnerColumn(),
