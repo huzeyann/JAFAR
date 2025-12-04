@@ -25,8 +25,8 @@ class CrossAttention(nn.Module):
 
         _, attn_scores = self.attention(query, key, self.norm_v(value), average_attn_weights=True)
         attn_output = einsum("b i j, b j d -> b i d", attn_scores, value)
-
         return attn_output, attn_scores
+
 
 
 class CrossAttentionBlock(nn.Module):
