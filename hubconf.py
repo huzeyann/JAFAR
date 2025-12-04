@@ -20,6 +20,7 @@ Example usage:
 
 import os
 import torch
+from torch import nn
 from pathlib import Path
 import urllib.request
 
@@ -208,7 +209,7 @@ def _load_jafar_with_backbone(backbone_name, pretrained=True, device='cuda', wei
 
 # ============ Simplified Interface ============
 
-class JAFARModel:
+class JAFARModel(nn.Module):
     """
     Wrapper class for JAFAR that simplifies usage.
     
