@@ -228,6 +228,7 @@ class JAFARModel(nn.Module):
             backbone: The backbone model for feature extraction
             output_resolution: Default output resolution for upsampling
         """
+        super().__init__()
         self.jafar = jafar_model
         self.backbone = backbone
         self.output_resolution = output_resolution
